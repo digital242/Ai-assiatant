@@ -1,0 +1,26 @@
+# Secrets -- never commit
+.env
+
+# Vosk model (large; downloaded per machine per README)
+models/*
+!models/.gitkeep
+
+# Logs
+logs/*
+!logs/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.Python
+build/
+dist/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

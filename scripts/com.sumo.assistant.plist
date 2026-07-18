@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  macOS launchd agent for Sumo.
+
+  This runs Sumo at login and keeps it alive. Before using it, EDIT the three
+  paths marked below to match your machine, then install it:
+
+    cp scripts/com.sumo.assistant.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.sumo.assistant.plist
+
+  To stop / uninstall:
+    launchctl unload ~/Library/LaunchAgents/com.sumo.assistant.plist
+
+  IMPORTANT: for microphone access to work under launchd you must grant mic
+  permission to the process that actually runs (often it prompts on first run;
+  if it doesn't, grant Terminal/your Python in System Settings -> Privacy &
+  Security -> Microphone). See the README macOS section.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.sumo.assistant</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <!-- EDIT: absolute path to the python inside your virtualenv -->
+        <string>/Users/CHANGE_ME/Ai-assiatant/.venv/bin/python</string>
+        <!-- EDIT: absolute path to run.py -->
+        <string>/Users/CHANGE_ME/Ai-assiatant/run.py</string>
+    </array>
+
+    <!-- EDIT: absolute path to the project directory -->
+    <key>WorkingDirectory</key>
+    <string>/Users/CHANGE_ME/Ai-assiatant</string>
+
+    <!-- Your API key. Alternatively rely on the project's .env file. -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>ANTHROPIC_API_KEY</key>
+        <string>sk-ant-CHANGE_ME</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/sumo.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/sumo.err.log</string>
+</dict>
+</plist>

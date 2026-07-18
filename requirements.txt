@@ -1,0 +1,15 @@
+# Sumo Phase 1 dependencies. Pinned to reasonable minimum versions.
+
+anthropic>=0.40.0        # Claude API SDK (Messages + tool use)
+vosk>=0.3.45             # offline speech recognition (wake word + STT)
+sounddevice>=0.4.6       # cross-platform mic capture (PortAudio)
+pyttsx3>=2.90            # offline text-to-speech
+PyYAML>=6.0              # config.yaml parsing
+python-dotenv>=1.0.0     # optional: load ANTHROPIC_API_KEY from a .env file
+
+# --- Platform-specific TTS backends (installed automatically per OS) ---------
+# macOS: pyttsx3 speaks through NSSpeechSynthesizer via pyobjc.
+pyobjc>=9.0; sys_platform == "darwin"
+# Windows: pyttsx3 speaks through SAPI5 via comtypes / pywin32.
+comtypes>=1.1.14; sys_platform == "win32"
+pywin32>=305; sys_platform == "win32"

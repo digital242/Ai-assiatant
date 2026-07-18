@@ -1,0 +1,32 @@
+# Sumo configuration (non-secret settings only).
+# Edit these instead of touching the Python. The ANTHROPIC_API_KEY is NOT here
+# on purpose -- it is read from the environment / .env only. See README.
+
+# --- Wake word & audio -------------------------------------------------------
+wake_word: "sumo"                # phrase Sumo listens for while idle
+vosk_model_path: "models/vosk-model-small-en-us-0.15"
+sample_rate: 16000               # Vosk small model expects 16 kHz
+block_size: 8000                 # frames per audio callback
+input_device: null               # null = system default mic; or an integer id
+                                 # (list devices: python -m sounddevice)
+
+# --- Command capture ---------------------------------------------------------
+silence_timeout: 6.0             # seconds to wait for you to START speaking
+max_command_seconds: 15.0        # hard cap once you are speaking
+
+# --- Brain (Claude) ----------------------------------------------------------
+claude_model: "claude-sonnet-5"
+history_window: 12               # conversational turns kept in memory
+max_tokens: 400                  # replies are short; this is plenty
+
+# --- Text to speech (pyttsx3) ------------------------------------------------
+tts_rate: 175                    # words per minute
+tts_volume: 0.9                  # 0.0 - 1.0
+tts_voice: null                  # null = default voice; or a platform voice id
+
+# --- Logging -----------------------------------------------------------------
+log_path: "logs/sumo.log"
+log_level: "INFO"
+log_max_bytes: 1000000           # rotate at ~1 MB
+log_backups: 3                   # keep 3 rotated files
+log_conversation: false          # PRIVACY: keep false. true logs what was said.
