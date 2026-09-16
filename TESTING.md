@@ -114,6 +114,41 @@ The point here is that tone tracks content — and that routine stuff stays plai
 
 ---
 
+## F. HUD window (optional — only if you use `python run_hud.py`)
+
+- [ ] **HUD opens and shows the ring, mic meter, clock, and transcript panel.**
+  Launch `python run_hud.py`. A red-on-black window appears with a central ring
+  labelled IDLE.
+
+- [ ] **The ring changes with state.** Say "sumo …" and watch the center label
+  move through LISTENING → THINKING → SPEAKING → IDLE as Sumo handles the turn.
+
+- [ ] **The mic meter reacts to your voice.** The ring of small bars around the
+  circle should grow/brighten as you speak and settle when you're quiet.
+
+- [ ] **The transcript shows both sides.** Your command appears under YOU and
+  Sumo's reply under SUMO.
+
+- [ ] **The window drags and closes.** Drag it by the top title strip; close it
+  with the ✕ (top-right) or Esc. Closing it shuts Sumo down cleanly — re-running
+  `python run_hud.py` or `python run.py` works with no leftover audio lock.
+
+## G. Fish Audio voice (optional — only if you set `tts_backend: "fish"`)
+
+- [ ] **The neural voice plays.** With `FISH_AUDIO_API_KEY` set and
+  `tts_backend: "fish"` in `config.yaml`, ask Sumo something and confirm the
+  reply is spoken in the Fish Audio voice (clearly richer than the offline one).
+
+- [ ] **Fallback keeps Sumo audible.** Temporarily break the Fish key (or pull
+  the network) and ask again. Sumo should still speak — it falls back to the
+  offline voice — and log `fish_error`, not go silent or crash.
+
+- [ ] **The Fish key never appears in the log.**
+  ```bash
+  grep -i "fish" logs/sumo.log        # events like fish_error are fine
+  grep -iE "sk-fish|Bearer" logs/sumo.log   # expect NO matches (no key leaked)
+  ```
+
 ## Done when
 
 All boxes above are checked on at least one target OS. Once you've confirmed

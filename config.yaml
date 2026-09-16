@@ -19,10 +19,24 @@ claude_model: "claude-sonnet-5"
 history_window: 12               # conversational turns kept in memory
 max_tokens: 400                  # replies are short; this is plenty
 
-# --- Text to speech (pyttsx3) ------------------------------------------------
+# --- Text to speech ----------------------------------------------------------
+tts_backend: "pyttsx3"           # "pyttsx3" = offline & free (flat voice)
+                                 # "fish"    = Fish Audio neural voice (expressive,
+                                 #             paid, sends reply text to the cloud;
+                                 #             needs FISH_AUDIO_API_KEY set)
+# pyttsx3 settings
 tts_rate: 175                    # words per minute
 tts_volume: 0.9                  # 0.0 - 1.0
 tts_voice: null                  # null = default voice; or a platform voice id
+# Fish Audio settings (only used when tts_backend: "fish")
+fish_voice_id: null              # a Fish voice/model reference id, or null for default
+fish_model: "s1"                 # synthesis backbone: "s1" or e.g. "speech-1.5"
+fish_sample_rate: 44100
+fish_speed: 1.0                  # baseline speaking speed multiplier
+
+# --- Heads-up display (only used by run_hud.py) ------------------------------
+hud_frameless: true              # borderless HUD window (drag it by the title strip)
+hud_topmost: true                # keep the HUD above other windows
 
 # --- Logging -----------------------------------------------------------------
 log_path: "logs/sumo.log"

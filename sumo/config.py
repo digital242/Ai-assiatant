@@ -33,9 +33,19 @@ DEFAULTS: Dict[str, Any] = {
     "history_window": 12,   # conversational turns kept (user+assistant pairs)
     "max_tokens": 400,
     # Text to speech
+    "tts_backend": "pyttsx3",  # "pyttsx3" (offline) or "fish" (Fish Audio, neural)
     "tts_rate": 175,     # words per minute (pyttsx3 baseline)
     "tts_volume": 0.9,   # 0.0 - 1.0
     "tts_voice": None,   # platform voice id, None = default
+    # Fish Audio (used only when tts_backend == "fish"). Key comes from the
+    # FISH_AUDIO_API_KEY env var, never from here.
+    "fish_voice_id": None,     # a Fish voice/model reference id, or None for default
+    "fish_model": "s1",        # synthesis backbone, e.g. "s1" or "speech-1.5"
+    "fish_sample_rate": 44100,
+    "fish_speed": 1.0,         # baseline speaking speed multiplier
+    # Heads-up display (used only when launched via run_hud.py / --hud)
+    "hud_frameless": True,     # borderless HUD window
+    "hud_topmost": True,       # keep the HUD above other windows
     # Logging
     "log_path": "logs/sumo.log",
     "log_level": "INFO",
@@ -59,9 +69,16 @@ class Config:
     claude_model: str
     history_window: int
     max_tokens: int
+    tts_backend: str
     tts_rate: int
     tts_volume: float
     tts_voice: Any
+    fish_voice_id: Any
+    fish_model: str
+    fish_sample_rate: int
+    fish_speed: float
+    hud_frameless: bool
+    hud_topmost: bool
     log_path: str
     log_level: str
     log_max_bytes: int

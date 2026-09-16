@@ -29,17 +29,42 @@ Sumo's persona shifts register with context — understated warmth for a win,
 calm steadiness for a problem, plain and efficient for routine stuff — and most
 of that lives in **word choice**, which works well.
 
-The **voice** itself is a different story. Phase 1 uses `pyttsx3`, which offers
-only two controls: speaking rate and volume. That's the whole toolkit. Sumo
-nudges them slightly based on an emotion signal Claude returns (a "positive"
-line comes out a touch quicker, a "concerned" line a touch slower), but be clear
-on what that sounds like: **the same flat synthetic voice going a little faster
-or slower.** It is not real vocal warmth, inflection, or prosody, and no amount
-of tuning those two knobs will make it so.
+You can pick one of two voices with `tts_backend` in `config.yaml`:
 
-If genuinely expressive voice matters to you, the real lever is a neural TTS
-with a style/emotion control — **ElevenLabs** is the obvious upgrade. The code is
-structured so that's a one-file swap (see [Swapping components](#swapping-components-later)).
+- **`pyttsx3`** (default) — offline and free. It offers only two controls:
+  speaking rate and volume. Sumo nudges them slightly from the emotion signal
+  Claude returns, but be clear on what that sounds like: **the same flat
+  synthetic voice going a little faster or slower.** Not real vocal warmth or
+  inflection — no idle cost, no cloud, no per-word charge.
+- **`fish`** — [Fish Audio](https://fish.audio), a neural voice that actually
+  carries warmth and inflection. This is the expressive upgrade. Tradeoffs:
+  it's a **paid** API call per reply, and the **reply text is sent to Fish
+  Audio's servers** to be synthesized. (Your microphone audio never leaves the
+  machine — only the words Sumo is about to say.) Set `FISH_AUDIO_API_KEY` and
+  `tts_backend: "fish"`. If Fish is ever unreachable, Sumo automatically falls
+  back to the offline voice so it never goes mute.
+
+The TTS layer sits behind a swappable interface, so other engines (e.g.
+ElevenLabs) can be dropped in the same way — see
+[Swapping components](#swapping-components-later).
+
+## The HUD (optional on-screen display)
+
+Sumo can run with a **heads-up display** — a red-on-black window showing a state
+ring (idle / listening / thinking / speaking), a live mic-level meter, the
+conversation transcript, and a clock. Launch it with:
+
+```bash
+python run_hud.py
+```
+
+Everything else works identically; it's the same assistant with a window
+attached. Drag it by the title strip, and close it (or press Esc) to quit.
+Tweak `hud_frameless` / `hud_topmost` in `config.yaml`. For a terminal-only run
+with no window, use `python run.py`.
+
+> The HUD uses Tkinter, which ships with the standard Python installer on Windows
+> and macOS. On some Linux distros install it with `sudo apt install python3-tk`.
 
 ---
 
@@ -268,11 +293,12 @@ Every pipeline stage sits behind an interface in `sumo/interfaces.py`. To
 upgrade, write a new class implementing the same interface and change **one line**
 in `sumo/app.py` (`_build_components`). Nothing else in the app needs to change.
 
-| Stage | v1 implementation | Likely upgrade |
+| Stage | v1 implementation | Alternatives |
 | --- | --- | --- |
 | Wake word | `VoskWakeWordDetector` | Picovoice Porcupine |
 | Speech-to-text | `VoskSpeechToText` | faster-whisper / Whisper API |
-| Text-to-speech | `Pyttsx3TextToSpeech` | ElevenLabs (real emotional voice) |
+| Text-to-speech | `Pyttsx3TextToSpeech` | `FishAudioTextToSpeech` (built in), ElevenLabs |
+| Display | `NullUI` (headless) | `TkinterHUD` (built in), web dashboard |
 
 ---
 
@@ -280,22 +306,27 @@ in `sumo/app.py` (`_build_components`). Nothing else in the app needs to change.
 
 ```
 Ai-assiatant/
-├── run.py                 # launcher: python run.py
+├── run.py                 # launcher (terminal only): python run.py
+├── run_hud.py             # launcher with the HUD window: python run_hud.py
+├── setup_model.py         # one-command Vosk model installer
 ├── config.yaml            # all non-secret settings
-├── .env.example           # template for the API key
+├── .env.example           # template for the API keys
 ├── requirements.txt
 ├── README.md
 ├── TESTING.md             # re-runnable Phase 1 test checklist
 ├── sumo/
-│   ├── app.py             # startup checks + resilient main loop
+│   ├── app.py             # startup checks + resilient loop + both entry points
 │   ├── config.py          # config.yaml loading
 │   ├── logging_setup.py   # rotating file logging
-│   ├── audio.py           # shared microphone stream
+│   ├── audio.py           # shared microphone stream (+ live level for the meter)
 │   ├── interfaces.py      # WakeWordDetector / SpeechToText / TextToSpeech ABCs
+│   ├── ui.py              # AssistantUI interface + NullUI (headless)
+│   ├── hud_tk.py          # TkinterHUD red heads-up display
 │   ├── vosk_shared.py     # cached Vosk model loader
 │   ├── wake_vosk.py       # Vosk wake-word detector
 │   ├── stt_vosk.py        # Vosk speech-to-text
-│   ├── tts_pyttsx3.py     # pyttsx3 text-to-speech (+ emotion mapping)
+│   ├── tts_pyttsx3.py     # pyttsx3 text-to-speech (offline, + emotion mapping)
+│   ├── tts_fish.py        # Fish Audio text-to-speech (neural, optional)
 │   ├── persona.py         # Sumo's system prompt
 │   └── brain.py           # Claude wrapper (forced structured reply)
 ├── scripts/

@@ -9,6 +9,8 @@ hit when repeatedly opening and closing the input on some platforms.
 
 from __future__ import annotations
 
+import array
+import math
 import queue
 from typing import Optional
 
@@ -32,6 +34,10 @@ class MicStream:
         self._device = device
         self._queue: "queue.Queue[bytes]" = queue.Queue()
         self._stream: Optional[sd.RawInputStream] = None
+        # Live input loudness in 0..1, updated every callback. The HUD's mic
+        # meter polls this; it is independent of which stage is reading frames,
+        # so the meter animates continuously while idle or listening.
+        self._level: float = 0.0
 
     # -- lifecycle ---------------------------------------------------------
     def open(self) -> None:
@@ -66,7 +72,27 @@ class MicStream:
     # -- reading -----------------------------------------------------------
     def _callback(self, indata, frames, time_info, status) -> None:
         # ``status`` flags overflows etc.; we don't hard-fail on them.
-        self._queue.put(bytes(indata))
+        raw = bytes(indata)
+        self._queue.put(raw)
+        # Cheap RMS on a strided subset (keeps the audio callback light). int16
+        # peaks near 32768; we normalize against a smaller divisor so ordinary
+        # speech drives the meter to a visible level without pinning at 1.0.
+        try:
+            samples = array.array("h", raw)
+            if samples:
+                stride = 16
+                subset = samples[::stride]
+                acc = 0
+                for v in subset:
+                    acc += v * v
+                rms = math.sqrt(acc / len(subset))
+                self._level = min(1.0, rms / 8000.0)
+        except Exception:
+            pass
+
+    def level(self) -> float:
+        """Most recent input loudness, 0..1. Safe to call from any thread."""
+        return self._level
 
     def read(self, timeout: Optional[float] = None) -> bytes:
         """Return the next audio frame. Blocks until one is available (or until
