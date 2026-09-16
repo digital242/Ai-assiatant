@@ -91,6 +91,16 @@ The right TTS backend for your OS is pulled in automatically (`pyobjc` on macOS,
 Sumo expects the model at `models/vosk-model-small-en-us-0.15` (this path is set
 in `config.yaml` as `vosk_model_path`).
 
+**Easiest — one command** (works on Windows and macOS, no extra tools):
+```bash
+python setup_model.py
+```
+This downloads the model (~40 MB), unzips it into `models/`, fixes the folder
+layout, and verifies it. Safe to re-run. If it can't reach the internet, use the
+manual method below.
+
+**Manual method:**
+
 1. Go to <https://alphacephei.com/vosk/models>
 2. Download **`vosk-model-small-en-us-0.15`**
 3. Unzip it and place the resulting folder inside `models/` so the final path is:
