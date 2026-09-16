@@ -48,23 +48,29 @@ The TTS layer sits behind a swappable interface, so other engines (e.g.
 ElevenLabs) can be dropped in the same way — see
 [Swapping components](#swapping-components-later).
 
-## The HUD (optional on-screen display)
+## Three ways to run
 
-Sumo can run with a **heads-up display** — a red-on-black window showing a state
-ring (idle / listening / thinking / speaking), a live mic-level meter, the
-conversation transcript, and a clock. Launch it with:
+Same assistant, different front end — pick per launch:
 
-```bash
-python run_hud.py
-```
+| Command | What you get |
+| --- | --- |
+| `python run.py` | Terminal only, no window. |
+| `python run_hud.py` | Lightweight **Tkinter** desktop window: state ring, mic meter, transcript, clock. Flat vector look (no glow), but tiny and instant. |
+| `python run_web.py` | **Browser HUD** — the cinematic one: a glowing red reactor with blur/gradients that reacts to state and your voice, telemetry panels, and a live transcript. Opens in your browser at `http://127.0.0.1:8760`. |
 
-Everything else works identically; it's the same assistant with a window
-attached. Drag it by the title strip, and close it (or press Esc) to quit.
-Tweak `hud_frameless` / `hud_topmost` in `config.yaml`. For a terminal-only run
-with no window, use `python run.py`.
+All three drive the exact same voice pipeline; the front end is a swappable
+layer. The browser HUD runs a tiny **localhost** web server (bound to
+`127.0.0.1`, so it's not exposed to your network) and the page polls it a few
+times a second for state — no cloud, no external services.
 
-> The HUD uses Tkinter, which ships with the standard Python installer on Windows
-> and macOS. On some Linux distros install it with `sudo apt install python3-tk`.
+Tkinter HUD notes: drag it by the title strip; close it (or press Esc) to quit;
+tweak `hud_frameless` / `hud_topmost` in `config.yaml`. It uses Tkinter, which
+ships with the standard Python installer on Windows and macOS (on some Linux
+distros: `sudo apt install python3-tk`).
+
+Browser HUD notes: quit it with **Ctrl+C in the terminal**; settings are
+`web_port` / `web_open_browser` in `config.yaml`. If the browser doesn't open
+automatically, visit the printed URL yourself.
 
 ---
 
@@ -298,7 +304,7 @@ in `sumo/app.py` (`_build_components`). Nothing else in the app needs to change.
 | Wake word | `VoskWakeWordDetector` | Picovoice Porcupine |
 | Speech-to-text | `VoskSpeechToText` | faster-whisper / Whisper API |
 | Text-to-speech | `Pyttsx3TextToSpeech` | `FishAudioTextToSpeech` (built in), ElevenLabs |
-| Display | `NullUI` (headless) | `TkinterHUD` (built in), web dashboard |
+| Display | `NullUI` (headless) | `TkinterHUD` + `WebHUD` (both built in) |
 
 ---
 
@@ -307,7 +313,8 @@ in `sumo/app.py` (`_build_components`). Nothing else in the app needs to change.
 ```
 Ai-assiatant/
 ├── run.py                 # launcher (terminal only): python run.py
-├── run_hud.py             # launcher with the HUD window: python run_hud.py
+├── run_hud.py             # launcher with the Tkinter HUD window
+├── run_web.py             # launcher with the browser HUD
 ├── setup_model.py         # one-command Vosk model installer
 ├── config.yaml            # all non-secret settings
 ├── .env.example           # template for the API keys
@@ -321,7 +328,9 @@ Ai-assiatant/
 │   ├── audio.py           # shared microphone stream (+ live level for the meter)
 │   ├── interfaces.py      # WakeWordDetector / SpeechToText / TextToSpeech ABCs
 │   ├── ui.py              # AssistantUI interface + NullUI (headless)
-│   ├── hud_tk.py          # TkinterHUD red heads-up display
+│   ├── hud_tk.py          # TkinterHUD red heads-up display (desktop window)
+│   ├── web_hud.py         # WebHUD localhost server for the browser HUD
+│   ├── web/index.html     # the cinematic browser HUD page (canvas + CSS glow)
 │   ├── vosk_shared.py     # cached Vosk model loader
 │   ├── wake_vosk.py       # Vosk wake-word detector
 │   ├── stt_vosk.py        # Vosk speech-to-text

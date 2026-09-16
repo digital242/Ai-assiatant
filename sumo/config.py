@@ -43,9 +43,13 @@ DEFAULTS: Dict[str, Any] = {
     "fish_model": "s1",        # synthesis backbone, e.g. "s1" or "speech-1.5"
     "fish_sample_rate": 44100,
     "fish_speed": 1.0,         # baseline speaking speed multiplier
-    # Heads-up display (used only when launched via run_hud.py / --hud)
+    # Tkinter heads-up display (used only when launched via run_hud.py)
     "hud_frameless": True,     # borderless HUD window
     "hud_topmost": True,       # keep the HUD above other windows
+    # Browser heads-up display (used only when launched via run_web.py)
+    "web_host": "127.0.0.1",   # localhost only -- not exposed to the network
+    "web_port": 8760,
+    "web_open_browser": True,  # auto-open the HUD page on start
     # Logging
     "log_path": "logs/sumo.log",
     "log_level": "INFO",
@@ -79,6 +83,9 @@ class Config:
     fish_speed: float
     hud_frameless: bool
     hud_topmost: bool
+    web_host: str
+    web_port: int
+    web_open_browser: bool
     log_path: str
     log_level: str
     log_max_bytes: int

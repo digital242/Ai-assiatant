@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SUMO</title>
+<style>
+  :root {
+    --red: #ff2b2b;
+    --red-bright: #ff6a6a;
+    --red-dim: #7a1717;
+    --red-deep: #3a0c0c;
+    --amber: #ff9a5c;
+    --bg: #060406;
+    --panel: rgba(30, 6, 8, 0.32);
+    --panel-line: rgba(255, 60, 60, 0.28);
+    --text: #ffd6d6;
+    --faint: rgba(255, 120, 120, 0.45);
+    --glow: 0 0 12px rgba(255, 43, 43, 0.55);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: "Consolas", "SFMono-Regular", "Menlo", "DejaVu Sans Mono", monospace;
+    overflow: hidden; user-select: none; cursor: default;
+  }
+  /* layered background: vignette + faint grid + moving scanlines */
+  #bg {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(circle at 50% 46%, rgba(80, 12, 12, 0.35), transparent 62%),
+      radial-gradient(circle at 50% 50%, transparent 55%, rgba(0,0,0,0.85) 100%),
+      linear-gradient(rgba(255, 40, 40, 0.05) 1px, transparent 1px) 0 0 / 100% 34px,
+      linear-gradient(90deg, rgba(255, 40, 40, 0.05) 1px, transparent 1px) 0 0 / 34px 100%,
+      var(--bg);
+  }
+  #scan {
+    position: fixed; inset: 0; z-index: 5; pointer-events: none; opacity: 0.5;
+    background: repeating-linear-gradient(
+      to bottom, rgba(255,255,255,0.025) 0 1px, transparent 1px 3px);
+    animation: scan 7s linear infinite;
+  }
+  @keyframes scan { from { background-position-y: 0; } to { background-position-y: 100px; } }
+
+  #reactor { position: fixed; inset: 0; z-index: 2; display: block; }
+
+  /* center readout overlaid on the canvas core */
+  #core {
+    position: fixed; z-index: 3; left: 50%; top: 50%;
+    transform: translate(-50%, -50%); text-align: center; pointer-events: none;
+    width: 320px;
+  }
+  #state { font-size: 30px; font-weight: 700; letter-spacing: 5px;
+    color: var(--red-bright); text-shadow: 0 0 18px rgba(255,43,43,0.8), 0 0 40px rgba(255,43,43,0.4); }
+  #sub { margin-top: 8px; font-size: 12px; letter-spacing: 3px; color: var(--faint); text-transform: uppercase; }
+  #notice { margin-top: 14px; min-height: 16px; font-size: 12px; letter-spacing: 1px;
+    color: var(--red-bright); text-shadow: var(--glow); }
+
+  .panel {
+    position: fixed; z-index: 4; padding: 12px 14px;
+    background: var(--panel); border: 1px solid var(--panel-line);
+    box-shadow: inset 0 0 24px rgba(255, 30, 30, 0.06), 0 0 18px rgba(255, 30, 30, 0.10);
+    backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  }
+  .panel h2 { margin: 0 0 8px; font-size: 10px; letter-spacing: 3px;
+    color: var(--faint); font-weight: 700; text-transform: uppercase; }
+
+  /* corner brackets on panels */
+  .panel::before, .panel::after {
+    content: ""; position: absolute; width: 12px; height: 12px; border: 2px solid var(--red); opacity: 0.7;
+  }
+  .panel::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .panel::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+  #brand { left: 26px; top: 22px; width: 240px; }
+  #brand .name { font-size: 26px; font-weight: 700; letter-spacing: 10px; color: var(--red);
+    text-shadow: 0 0 16px rgba(255,43,43,0.7); }
+  #brand .tag { font-size: 10px; letter-spacing: 4px; color: var(--faint); margin-top: 2px; }
+  #status-dot { display:inline-block; width:8px; height:8px; border-radius:50%;
+    background: var(--red); box-shadow: var(--glow); margin-right:8px; vertical-align: middle; }
+
+  #clock { right: 26px; top: 22px; text-align: right; min-width: 150px; }
+  #clock .t { font-size: 26px; font-weight: 700; letter-spacing: 3px; color: var(--red-bright);
+    text-shadow: var(--glow); }
+  #clock .d { font-size: 11px; letter-spacing: 2px; color: var(--faint); margin-top: 2px; }
+
+  #sys { left: 26px; top: 132px; width: 210px; }
+  #sig { right: 26px; top: 132px; width: 210px; text-align: right; }
+  .bar { height: 6px; margin: 7px 0; background: rgba(255,40,40,0.12); position: relative; overflow: hidden; }
+  .bar > i { position: absolute; top: 0; left: 0; height: 100%;
+    background: linear-gradient(90deg, var(--red-dim), var(--red-bright));
+    box-shadow: 0 0 10px rgba(255,43,43,0.6); }
+  .row { font-size: 10px; letter-spacing: 2px; color: var(--faint); display:flex; justify-content: space-between; }
+  #sig .readout { font-size: 11px; letter-spacing: 1px; color: var(--text); opacity: 0.8; margin: 5px 0; }
+
+  #transcript {
+    left: 50%; transform: translateX(-50%); bottom: 26px; width: min(760px, 92vw);
+    max-height: 210px; overflow: hidden; z-index: 4;
+  }
+  #lines { display: flex; flex-direction: column; gap: 8px; }
+  .line { display: flex; gap: 12px; align-items: baseline; opacity: 0.9; }
+  .line .who { flex: 0 0 52px; font-size: 10px; font-weight: 700; letter-spacing: 2px; }
+  .line.you .who { color: var(--amber); }
+  .line.sumo .who { color: var(--red-bright); }
+  .line .txt { font-size: 14px; line-height: 1.35; color: var(--text); }
+  .line.fresh { animation: fade 0.5s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 0.9; transform: none; } }
+
+  #hint { position: fixed; z-index: 4; left: 50%; transform: translateX(-50%); bottom: 6px;
+    font-size: 10px; letter-spacing: 3px; color: var(--faint); }
+  #offline { position: fixed; z-index: 6; right: 26px; bottom: 8px; font-size: 10px;
+    letter-spacing: 2px; color: var(--faint); opacity: 0; transition: opacity .3s; }
+</style>
+</head>
+<body>
+  <div id="bg"></div>
+  <canvas id="reactor"></canvas>
+  <div id="scan"></div>
+
+  <div id="core">
+    <div id="state">IDLE</div>
+    <div id="sub">initializing</div>
+    <div id="notice"></div>
+  </div>
+
+  <div id="brand" class="panel">
+    <div class="name">SUMO</div>
+    <div class="tag"><span id="status-dot"></span>VOICE ASSISTANT // ONLINE</div>
+  </div>
+
+  <div id="clock" class="panel">
+    <div class="t" id="clock-t">--:--:--</div>
+    <div class="d" id="clock-d">----</div>
+  </div>
+
+  <div id="sys" class="panel">
+    <h2>System</h2>
+    <div class="row"><span>CORE</span><span id="sys-core">--%</span></div>
+    <div class="bar"><i id="bar-core"></i></div>
+    <div class="row"><span>AUDIO IN</span><span id="sys-audio">--%</span></div>
+    <div class="bar"><i id="bar-audio"></i></div>
+    <div class="row"><span>LINK</span><span id="sys-link">--%</span></div>
+    <div class="bar"><i id="bar-link"></i></div>
+  </div>
+
+  <div id="sig" class="panel">
+    <h2>Signal</h2>
+    <div class="readout" id="sig-1">LAT &nbsp; -- ms</div>
+    <div class="readout" id="sig-2">FREQ &nbsp; -- Hz</div>
+    <div class="readout" id="sig-3">GAIN &nbsp; -- dB</div>
+    <div class="readout" id="sig-4">CH &nbsp; MONO 16k</div>
+  </div>
+
+  <div id="transcript" class="panel">
+    <h2>Transcript</h2>
+    <div id="lines"></div>
+  </div>
+
+  <div id="hint"></div>
+  <div id="offline">SIGNAL LOST — RECONNECTING</div>
+
+<script>
+(() => {
+  "use strict";
+  const canvas = document.getElementById("reactor");
+  const ctx = canvas.getContext("2d");
+  let W = 0, H = 0, DPR = 1;
+
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    canvas.style.width = W + "px"; canvas.style.height = H + "px";
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  // ---- live state (polled from the Python server) ----
+  let state = { state: "idle", level: 0, transcript: [], notice: "", wake_word: "sumo" };
+  let lastSeq = -1, connOk = true;
+
+  async function poll() {
+    try {
+      const r = await fetch("/state", { cache: "no-store" });
+      state = await r.json();
+      if (!connOk) { connOk = true; document.getElementById("offline").style.opacity = 0; }
+      renderDom();
+    } catch (e) {
+      connOk = false;
+      document.getElementById("offline").style.opacity = 0.8;
+    }
+  }
+  setInterval(poll, 120);
+  poll();
+
+  // ---- DOM (state label, transcript, telemetry) ----
+  const SUB = {
+    idle: "say the wake word",
+    listening: "go ahead",
+    thinking: "processing",
+    speaking: "responding"
+  };
+  function renderDom() {
+    document.getElementById("state").textContent = (state.state || "idle").toUpperCase();
+    document.getElementById("sub").textContent = SUB[state.state] || "";
+    document.getElementById("notice").textContent = state.notice || "";
+    document.getElementById("hint").textContent =
+      'SAY "' + (state.wake_word || "sumo").toUpperCase() + '"  TO  WAKE';
+
+    // transcript (only rebuild when it changed)
+    const t = state.transcript || [];
+    const newestSeq = t.length ? t[t.length - 1].seq : -1;
+    if (newestSeq !== lastSeq) {
+      const box = document.getElementById("lines");
+      box.innerHTML = "";
+      for (const item of t) {
+        const div = document.createElement("div");
+        div.className = "line " + (item.speaker === "you" ? "you" : "sumo")
+          + (item.seq === newestSeq ? " fresh" : "");
+        const who = document.createElement("div");
+        who.className = "who"; who.textContent = item.speaker.toUpperCase();
+        const txt = document.createElement("div");
+        txt.className = "txt"; txt.textContent = item.text;
+        div.appendChild(who); div.appendChild(txt); box.appendChild(div);
+      }
+      lastSeq = newestSeq;
+    }
+  }
+
+  // ---- clock + fake-but-alive telemetry ----
+  function setBar(id, pct) { document.getElementById(id).style.width = Math.max(0, Math.min(100, pct)) + "%"; }
+  function telemetry(now) {
+    const d = new Date();
+    document.getElementById("clock-t").textContent = d.toLocaleTimeString("en-GB");
+    document.getElementById("clock-d").textContent =
+      d.toLocaleDateString(undefined, { weekday: "short", day: "2-digit", month: "short" }).toUpperCase();
+
+    const lvl = displayLevel;
+    const core = 22 + 10 * Math.sin(now / 900) + 8 * Math.sin(now / 330);
+    const audio = lvl * 100;
+    const link = 82 + 12 * Math.sin(now / 1700);
+    setBar("bar-core", core); document.getElementById("sys-core").textContent = Math.round(core) + "%";
+    setBar("bar-audio", audio); document.getElementById("sys-audio").textContent = Math.round(audio) + "%";
+    setBar("bar-link", link); document.getElementById("sys-link").textContent = Math.round(link) + "%";
+
+    document.getElementById("sig-1").textContent = "LAT   " + (14 + Math.round(6 * Math.abs(Math.sin(now/800)))) + " ms";
+    document.getElementById("sig-2").textContent = "FREQ  " + (300 + Math.round(3400 * lvl)) + " Hz";
+    document.getElementById("sig-3").textContent = "GAIN  " + (lvl > 0.02 ? "+" : "") + (lvl * 24 - 6).toFixed(1) + " dB";
+  }
+
+  // ---- canvas reactor ----
+  let displayLevel = 0;   // smoothed mic level
+
+  function glowArc(cx, cy, r, a0, a1, color, width, blur) {
+    ctx.save();
+    ctx.shadowColor = color; ctx.shadowBlur = blur;
+    ctx.strokeStyle = color; ctx.lineWidth = width;
+    ctx.beginPath(); ctx.arc(cx, cy, r, a0, a1); ctx.stroke();
+    ctx.restore();
+  }
+
+  function draw(now) {
+    // smooth the mic level toward the latest reading
+    const target = connOk ? (state.level || 0) : 0;
+    displayLevel += (target - displayLevel) * 0.2;
+
+    ctx.clearRect(0, 0, W, H);
+    const cx = W / 2, cy = H / 2;
+    const base = Math.min(W, H);
+    const R = Math.max(150, base * 0.28);   // outer radius scales with window
+    const st = state.state || "idle";
+    const t = now / 1000;
+    const breathe = (Math.sin(t * 1.6) + 1) / 2;
+
+    // state color
+    let col = "#c81f1f", coreCol = "#ff3b3b", intensity = 0.5;
+    if (st === "listening") { col = "#ff4444"; coreCol = "#ff6a6a"; intensity = 0.6 + 0.4 * displayLevel; }
+    else if (st === "thinking") { col = "#ff2b2b"; coreCol = "#ff5555"; intensity = 0.75; }
+    else if (st === "speaking") { col = "#ff5a5a"; coreCol = "#ff7b7b"; intensity = 0.7 + 0.3 * ((Math.sin(t*7)+1)/2); }
+    else { intensity = 0.4 + 0.25 * breathe; }
+
+    // faint outer decorative ring, slowly rotating dashed segments
+    ctx.save();
+    ctx.translate(cx, cy); ctx.rotate(t * 0.12);
+    for (let i = 0; i < 48; i++) {
+      const a = (i / 48) * Math.PI * 2;
+      const long = i % 6 === 0;
+      const r1 = R + 44, r2 = R + (long ? 60 : 52);
+      ctx.save();
+      ctx.shadowColor = col; ctx.shadowBlur = 6;
+      ctx.strokeStyle = "rgba(255,60,60," + (long ? 0.6 : 0.28) + ")";
+      ctx.lineWidth = long ? 2 : 1;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * r1, Math.sin(a) * r1);
+      ctx.lineTo(Math.cos(a) * r2, Math.sin(a) * r2);
+      ctx.stroke(); ctx.restore();
+    }
+    ctx.restore();
+
+    // main rings
+    glowArc(cx, cy, R + 28, 0, Math.PI * 2, "rgba(255,43,43,0.18)", 1, 8);
+    glowArc(cx, cy, R, 0, Math.PI * 2, col, 2 + 2 * intensity, 18 * intensity + 6);
+    glowArc(cx, cy, R - 20, 0, Math.PI * 2, "rgba(255,43,43,0.22)", 1, 6);
+
+    // radial mic meter
+    const bars = 84;
+    for (let i = 0; i < bars; i++) {
+      const a = (i / bars) * Math.PI * 2 - Math.PI / 2;
+      const lit = (i / bars) <= displayLevel;
+      const len = lit ? 20 : 7;
+      const r1 = R - 44;
+      const c = lit ? "#ff7a7a" : "rgba(255,50,50,0.18)";
+      ctx.save();
+      ctx.shadowColor = c; ctx.shadowBlur = lit ? 12 : 0;
+      ctx.strokeStyle = c; ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+      ctx.lineTo(cx + Math.cos(a) * (r1 - len), cy + Math.sin(a) * (r1 - len));
+      ctx.stroke(); ctx.restore();
+    }
+
+    // thinking: sweeping arc
+    if (st === "thinking") {
+      const a0 = (t * 2.4) % (Math.PI * 2);
+      glowArc(cx, cy, R - 6, a0, a0 + 1.7, "#ff8a8a", 4, 20);
+      glowArc(cx, cy, R - 6, a0 + Math.PI, a0 + Math.PI + 1.1, "#ff5a5a", 3, 14);
+    }
+
+    // speaking: pulsing circular waveform
+    if (st === "speaking") {
+      ctx.save();
+      ctx.shadowColor = coreCol; ctx.shadowBlur = 16; ctx.strokeStyle = coreCol; ctx.lineWidth = 2;
+      ctx.beginPath();
+      const rr = R * 0.52;
+      for (let i = 0; i <= 120; i++) {
+        const a = (i / 120) * Math.PI * 2;
+        const amp = 10 * Math.sin(a * 8 + t * 9) * (0.5 + 0.5 * Math.sin(t * 6));
+        const r = rr + amp;
+        const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.closePath(); ctx.stroke(); ctx.restore();
+    }
+
+    // glowing core
+    const coreR = R * 0.42 * (0.9 + 0.12 * (st === "speaking" ? (Math.sin(t*7)+1)/2 : breathe));
+    const g = ctx.createRadialGradient(cx, cy, coreR * 0.1, cx, cy, coreR);
+    g.addColorStop(0, "rgba(255,120,120," + (0.30 + 0.25 * intensity) + ")");
+    g.addColorStop(0.6, "rgba(200,30,30,0.12)");
+    g.addColorStop(1, "rgba(120,10,10,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(cx, cy, coreR, 0, Math.PI * 2); ctx.fill();
+    glowArc(cx, cy, coreR, 0, Math.PI * 2, coreCol, 1.5, 14 * intensity);
+
+    telemetry(now);
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>

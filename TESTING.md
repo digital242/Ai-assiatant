@@ -114,7 +114,7 @@ The point here is that tone tracks content — and that routine stuff stays plai
 
 ---
 
-## F. HUD window (optional — only if you use `python run_hud.py`)
+## F. Tkinter HUD window (optional — only if you use `python run_hud.py`)
 
 - [ ] **HUD opens and shows the ring, mic meter, clock, and transcript panel.**
   Launch `python run_hud.py`. A red-on-black window appears with a central ring
@@ -133,7 +133,29 @@ The point here is that tone tracks content — and that routine stuff stays plai
   with the ✕ (top-right) or Esc. Closing it shuts Sumo down cleanly — re-running
   `python run_hud.py` or `python run.py` works with no leftover audio lock.
 
-## G. Fish Audio voice (optional — only if you set `tts_backend: "fish"`)
+## G. Browser HUD (optional — only if you use `python run_web.py`)
+
+- [ ] **The HUD page opens.** Run `python run_web.py`. Your browser opens
+  `http://127.0.0.1:8760` showing a glowing red reactor, telemetry panels, a
+  clock, and a transcript panel. (If it doesn't auto-open, visit the URL printed
+  in the terminal.)
+
+- [ ] **The reactor reacts to state.** Say "sumo …" and watch the center label
+  and reactor animation move through IDLE → LISTENING → THINKING → SPEAKING.
+
+- [ ] **The radial meter reacts to your voice.** The ring of bars grows/brightens
+  as you speak and settles when quiet.
+
+- [ ] **The transcript updates live** with YOU and SUMO lines, newest first-in
+  at the bottom.
+
+- [ ] **It's local-only.** The page is served from `127.0.0.1` — confirm it's not
+  reachable from another device on your network (that's intended).
+
+- [ ] **Ctrl+C in the terminal quits cleanly** and the port is free on the next
+  run (no "address already in use").
+
+## H. Fish Audio voice (optional — only if you set `tts_backend: "fish"`)
 
 - [ ] **The neural voice plays.** With `FISH_AUDIO_API_KEY` set and
   `tts_backend: "fish"` in `config.yaml`, ask Sumo something and confirm the

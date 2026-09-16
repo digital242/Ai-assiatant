@@ -238,6 +238,30 @@ def run() -> None:
         mic.close()
 
 
+def run_web() -> None:
+    """Run with the browser-based HUD. The HUD is a localhost web server on a
+    daemon thread, so (unlike the Tkinter HUD) the voice loop runs on the main
+    thread just like the headless case."""
+    config, logger, wake, stt, brain, mic = _startup()
+
+    from .web_hud import WebHUD
+
+    ui = WebHUD(
+        mic=mic,
+        wake_word=config.wake_word,
+        host=config.web_host,
+        port=config.web_port,
+        open_browser=config.web_open_browser,
+        logger=logger,
+    )
+    stop_event = threading.Event()
+    try:
+        _listen_loop(config, logger, wake, stt, brain, mic, ui, stop_event)
+    finally:
+        ui.shutdown()
+        mic.close()
+
+
 def run_hud() -> None:
     """Run with the on-screen red HUD."""
     config, logger, wake, stt, brain, mic = _startup()

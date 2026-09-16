@@ -34,9 +34,14 @@ fish_model: "s1"                 # synthesis backbone: "s1" or e.g. "speech-1.5"
 fish_sample_rate: 44100
 fish_speed: 1.0                  # baseline speaking speed multiplier
 
-# --- Heads-up display (only used by run_hud.py) ------------------------------
+# --- Tkinter heads-up display (only used by run_hud.py) ----------------------
 hud_frameless: true              # borderless HUD window (drag it by the title strip)
 hud_topmost: true                # keep the HUD above other windows
+
+# --- Browser heads-up display (only used by run_web.py) ----------------------
+web_host: "127.0.0.1"            # localhost only; not exposed to your network
+web_port: 8760
+web_open_browser: true           # auto-open the HUD page in your browser on start
 
 # --- Logging -----------------------------------------------------------------
 log_path: "logs/sumo.log"
